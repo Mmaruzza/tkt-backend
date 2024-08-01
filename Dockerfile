@@ -1,20 +1,23 @@
-# Usamos la imagen oficial de Node.js 22-alpine como base
-FROM node:22-alpine
+# Install the app dependencies in a full Node docker image
+FROM registry.access.redhat.com/ubi8/nodejs-18:latest
 
-# Establecemos el directorio de trabajo en el contenedor
-WORKDIR /usr/src/app
+# Copy package.json, and optionally package-lock.json if it exists
+COPY package.json package-lock.json* ./
 
-# Copiamos el package.json y el package-lock.json
-COPY package*.json ./
+# Install app dependencies
+RUN \
+  if [ -f package-lock.json ]; then npm ci; \
+  else npm install; \
+  fi
 
-# Instalamos las dependencias
-RUN npm install
+# Copy the dependencies into a Slim Node docker image
+FROM registry.access.redhat.com/ubi8/nodejs-18-minimal:latest
 
-# Copiamos el resto del código de la aplicación
-COPY . .
+# Install app dependencies
+COPY --from=0 /opt/app-root/src/node_modules /opt/app-root/src/node_modules
+COPY . /opt/app-root/src
 
-# Exponemos el puerto 3001
-EXPOSE 3001
+ENV NODE_ENV production
+ENV PORT 3001
 
-# Definimos el comando por defecto para ejecutar la aplicación
-CMD ["node", "index.js"]
+CMD ["npm", "start"]
