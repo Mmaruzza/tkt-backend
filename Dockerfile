@@ -18,8 +18,8 @@ COPY --from=0 /opt/app-root/src/node_modules /opt/app-root/src/node_modules
 COPY . /opt/app-root/src
 
 ENV NODE_ENV production
-ENV PORT 3000
+ENV PORT 3001
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["npm", "start"]
