@@ -1,23 +1,25 @@
-#Use RHEL8 UBI node 18 image as base
-FROM registry.access.redhat.com/ubi8/nodejs-18:1-71.1695741533
+# Install the app dependencies in a full Node docker image
+FROM registry.access.redhat.com/ubi8/nodejs-18:latest
 
-# Set environment variable as development
-ENV NODE_ENV=development
+# Copy package.json, and optionally package-lock.json if it exists
+COPY package.json package-lock.json* ./
 
-# Defining work directory
-WORKDIR /usr/src/app
+# Install app dependencies
+RUN \
+  if [ -f package-lock.json ]; then npm ci; \
+  else npm install; \
+  fi
 
-# Copy the packages from remote directory to container work directory
-COPY --chown=1001:1001 package.json ./
+# Copy the dependencies into a Slim Node docker image
+FROM registry.access.redhat.com/ubi8/nodejs-18-minimal:latest
 
-# Install all dependacies using npm
-RUN npm install
+# Install app dependencies
+COPY --from=0 /opt/app-root/src/node_modules /opt/app-root/src/node_modules
+COPY . /opt/app-root/src
 
-# Copy the application to container
-COPY --chown=1001:1001 . /usr/src/app
+ENV NODE_ENV production
+ENV PORT 3000
 
-# Expose the 3000 port to accept upcomming traffic
 EXPOSE 3000
 
-# Execute the start script
 CMD ["npm", "start"]
